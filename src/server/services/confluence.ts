@@ -1,6 +1,25 @@
 import { ConfluenceConfig, ConfluenceCookie, ConfluenceError } from '../../types';
 import fetch from 'node-fetch';
 
+export interface ContentResponse {
+    id: string;
+    type: string;
+    status: string;
+    title: string;
+    body?: {
+        storage: {
+            value: string;
+            representation: string;
+        };
+    };
+}
+
+export interface SearchResponse {
+    results: Array<{
+        content: ContentResponse;
+    }>;
+}
+
 export class ConfluenceService {
     private baseUrl: string;
     private apiPath: string;
@@ -49,5 +68,21 @@ export class ConfluenceService {
         }
 
         return response.json();
+    }
+
+    async getPage(pageId: string): Promise<ContentResponse> {
+        return this.request(`/content/${pageId}?expand=body.storage`);
+    }
+
+    async searchContent(space: string, query: string): Promise<SearchResponse> {
+        const cql = encodeURIComponent(`space="${space}" AND text~"${query}"`);
+        return this.request(`/search?cql=${cql}`);
+    }
+
+    async getSpaceContent(space: string): Promise<ContentResponse[]> {
+        const response: SearchResponse = await this.request(
+            `/content?spaceKey=${space}&expand=body.storage&limit=100`
+        );
+        return response.results.map(r => r.content);
     }
 }
