@@ -1,7 +1,22 @@
-import { ReadResourceRequestSchema, Resource } from '@modelcontextprotocol/sdk/types';
+import { ReadResourceRequestSchema, Resource, ListResourcesRequestSchema } from '@modelcontextprotocol/sdk/types';
 import { ConfluenceServer } from '../ConfluenceServer';
+import { ConfluenceService } from '../services/confluence';
 
-export function setupResourceHandlers(server: ConfluenceServer) {
+export function setupResourceHandlers(server: ConfluenceServer, confluenceService: ConfluenceService) {
+    server.setRequestHandler(
+        ListResourcesRequestSchema,
+        async () => {
+            const resources = await confluenceService.getSpaceContent('MAIN');
+            return {
+                resources: resources.map(content => ({
+                    uri: `confluence://MAIN/${content.id}`,
+                    name: content.title,
+                    mimeType: 'text/html'
+                }))
+            };
+        }
+    );
+
     server.setRequestHandler(
         ReadResourceRequestSchema,
         async (request) => {
@@ -10,20 +25,18 @@ export function setupResourceHandlers(server: ConfluenceServer) {
                 throw new Error('Invalid resource URI scheme');
             }
 
-            // TODO: Implement resource reading
-            // Example: confluence://space/page-id
             const [, space, pageId] = uri.split('/');
-            
             if (!space || !pageId) {
                 throw new Error('Invalid resource URI format');
             }
 
-            // TODO: Add actual Confluence API call
+            const page = await confluenceService.getPage(pageId);
+            
             return {
                 contents: [{
                     uri,
-                    mimeType: 'text/plain',
-                    text: 'Page content will be here'
+                    mimeType: 'text/html',
+                    text: page.body?.storage.value || 'No content'
                 }]
             };
         }
