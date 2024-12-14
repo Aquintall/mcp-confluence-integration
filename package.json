@@ -1,0 +1,22 @@
+{
+  "name": "mcp-confluence-integration",
+  "version": "1.0.0",
+  "description": "MCP server for Confluence integration with authentication management",
+  "main": "build/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node build/server.js",
+    "dev": "ts-node src/server.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.3",
+    "node-fetch": "^2.6.1",
+    "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@types/node-fetch": "^2.6.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
