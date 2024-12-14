@@ -1,8 +1,11 @@
-import { Server } from "@modelcontextprotocol/sdk/server";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio";
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { ReadResourceRequestSchema, ListResourcesRequestSchema } from '@modelcontextprotocol/sdk/types';
 import { Database } from "sqlite3";
 import fetch from "node-fetch";
-import { ReadResourceRequestSchema, ListResourcesRequestSchema } from '@modelcontextprotocol/sdk/types';
+import { config } from 'dotenv';
+
+config();
 
 const dbPath = process.env.DB_PATH || "c:\\vault\\database\\claude_chat.db";
 const confluenceUrl = process.env.CONFLUENCE_URL;
@@ -22,7 +25,15 @@ const server = new Server({
 
 const db = new Database(dbPath);
 
-async function getCookies() {
+interface StoredCookies {
+    cookies: Array<{
+        name: string;
+        value: string;
+        domain: string;
+    }>;
+}
+
+async function getCookies(): Promise<StoredCookies> {
     return new Promise((resolve, reject) => {
         db.get(
             'SELECT value FROM assistant_state WHERE key = ?', 
@@ -42,10 +53,19 @@ async function getCookies() {
     });
 }
 
-// Простой запрос к Confluence
-async function getConfluencePage(pageId: string, cookies: any) {
+interface ConfluencePage {
+    id: string;
+    title: string;
+    body?: {
+        storage: {
+            value: string;
+        };
+    };
+}
+
+async function getConfluencePage(pageId: string, cookies: StoredCookies): Promise<ConfluencePage> {
     const cookieHeader = cookies.cookies
-        .map((c: any) => `${c.name}=${c.value}`)
+        .map(c => `${c.name}=${c.value}`)
         .join('; ');
 
     const response = await fetch(
@@ -62,7 +82,8 @@ async function getConfluencePage(pageId: string, cookies: any) {
         throw new Error(`Confluence API error: ${response.statusText}`);
     }
 
-    return response.json();
+    const data = await response.json() as ConfluencePage;
+    return data;
 }
 
 // Обработчики MCP
